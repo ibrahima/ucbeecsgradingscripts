@@ -1,5 +1,6 @@
 import subprocess
 import os
+import re
 
 def makedict(filename):
 	f = open(filename)
@@ -34,7 +35,22 @@ def getsubs(assign, rosterfile="roster"):
 	r.close()
 	f.close()
 
-
+def getsubs2(assign):
+	if not os.path.exists(assign):
+		os.mkdir(assign)
+	os.chdir(assign)
+	proc = subprocess.Popen(["get-submissions", assign])
+	proc.wait()
+	gen = os.walk(".")
+	r, d, f = gen.next()
+	regex = "cs61c-[a-z][a-z].\d{12,12}"
+	p = re.compile(regex)
+	filtered = filter(lambda x: p.match(x), f) #only unpack assignments, not autograder results
+	for file in filtered:
+		print "Looking at ", file
+		look = subprocess.Popen(["lookat", file, "-d " +file +".d"])
+		look.wait()
+		os.remove(file)
 
 def makeroster(filename, d, outfile):
     f = open(filename)
@@ -46,4 +62,4 @@ def makeroster(filename, d, outfile):
 
 if __name__ == "__main__":
 	import sys
-	getsubs(sys.argv[1])
+	getsubs2(sys.argv[1])
