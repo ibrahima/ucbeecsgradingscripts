@@ -24,7 +24,7 @@ def getsubs(assign):
 		look.wait()
 		os.remove(file)
 	os.chdir("..")
-	tar = subprocess.Popen(["gtar", "cjvf", assign+"tar.bz2", "--dereference", assign])
+	tar = subprocess.Popen(["gtar", "cjvf", assign+".tar.bz2", "--dereference", assign])
 	tar.wait()
 	
 if __name__ == "__main__":
