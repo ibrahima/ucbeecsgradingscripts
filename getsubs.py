@@ -3,6 +3,7 @@
 import subprocess
 import os
 import re
+from optparse import OptionParser
 
 def getsubs(assign):
 	if not os.path.exists(assign):
@@ -14,20 +15,29 @@ def getsubs(assign):
 	r, d, f = gen.next()
 	f.sort()
 	subsregex = "(cs61c-[a-z][a-z]).\d{12,12}"
-	logsregex = "ok|problem-" + subsregex
+	logsregex = "(ok|problem)-" + subsregex
 	subsre = re.compile(subsregex)
 	logsre = re.compile(logsregex)
 	submissions = filter(lambda x: subsre.match(x), f)
-	logs = filter(lambda x: logsre.match(x), f)
+	logs = [(logsre.match(x),x) for x in f]
+	logs = filter(lambda x: x[0], logs)
 
 	for file in submissions:
 		look = subprocess.Popen(["lookat", "-d", file +".d", file])
 		look.wait()
 		os.remove(file)
+	scores = {}
 	for log in logs:
-		getAutograderResult(log)
+		score = getAutograderResult(log[1])
+		username = log[0].groups()[1]
+		if not username in scores or score > scores[username]:
+			scores[username] = score
+	users = scores.keys()
+	users.sort()
+	for user in users:
+		print user, " got ", scores[user], "from the autograder"
 	os.chdir("..")
-	print "Creating ", assign, ".tar.bz2"
+	print "Creating %s.tar.bz2" % assign
 	tar = subprocess.Popen(["gtar", "cjf", assign+".tar.bz2", "--dereference", assign])
 	tar.wait()
 	
@@ -42,10 +52,19 @@ def getAutograderResult(logfile):
 			m = cmp.match(line)
 			if m:
 				score = m.groups()[0]
-	print "Detected a score of ", score, "in ", logfile
 	return score 
 
+def makeRoster(assign):
+    out = open(assign+"roster.txt", 'w')
+    makeroster = subprocess.Popen(["make-roster", assign], stdout=out)
+    makeroster.wait()
+    
 	
 if __name__ == "__main__":
-	import sys
-	getsubs(sys.argv[1])
+    parser = OptionParser()
+    parser.add_option("-m", "--make-roster", action="store_true" ,dest="make_roster")
+    (options, args) = parser.parse_args()
+    if options.make_roster:
+        makeRoster(args[0])
+    else:
+        getsubs(args[0])
